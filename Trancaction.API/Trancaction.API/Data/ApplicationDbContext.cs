@@ -1,8 +1,17 @@
-﻿namespace Trancaction.API.Data
+﻿namespace Transaction.API.Data
 {
     public class ApplicationDbContext : DbContext
     {
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+            : base(options)
+        {
+        }
 
+        public DbSet<TransactionEntity> Transactions { get; set; }
 
+        protected override void OnModelCreating(ModelBuilder builder)
+        {
+            builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+        }
     }
 }
