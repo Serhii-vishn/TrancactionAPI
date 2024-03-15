@@ -1,4 +1,4 @@
-﻿namespace Trancaction.API.Data.Entities
+﻿namespace Transaction.API.Data.Entities
 {
     public class TransactionEntity
     {

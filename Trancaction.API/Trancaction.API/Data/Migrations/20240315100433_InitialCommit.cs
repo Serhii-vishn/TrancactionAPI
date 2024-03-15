@@ -1,9 +1,8 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Trancaction.API.Migrations
+namespace Transaction.API.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCommit : Migration

@@ -1,6 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-
-namespace Trancaction.API.Data.EntityConfiguration
+﻿namespace Transaction.API.Data.EntityConfiguration
 {
     public class TransactionEntityConfiguration : IEntityTypeConfiguration<TransactionEntity>
     {

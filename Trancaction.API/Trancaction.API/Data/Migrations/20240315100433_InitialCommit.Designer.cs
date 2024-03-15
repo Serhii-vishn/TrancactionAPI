@@ -5,11 +5,11 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using Trancaction.API.Data;
+using Transaction.API.Data;
 
 #nullable disable
 
-namespace Trancaction.API.Migrations
+namespace Transaction.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     [Migration("20240315100433_InitialCommit")]

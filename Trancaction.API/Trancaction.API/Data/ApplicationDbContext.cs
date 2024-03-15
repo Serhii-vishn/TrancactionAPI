@@ -1,4 +1,4 @@
-﻿namespace Trancaction.API.Data
+﻿namespace Transaction.API.Data
 {
     public class ApplicationDbContext : DbContext
     {
