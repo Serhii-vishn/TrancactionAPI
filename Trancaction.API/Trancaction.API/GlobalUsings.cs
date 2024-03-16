@@ -12,3 +12,4 @@ global using Transaction.API.Data;
 global using Transaction.API.Data.Migrations;
 global using Transaction.API.Data.Entities;
 global using Transaction.API.Services.Interfaces;
+global using Transaction.API.Services;

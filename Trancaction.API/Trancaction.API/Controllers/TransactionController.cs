@@ -18,9 +18,10 @@
         {
             try
             {
-                var employees = await _transactionService.AddFromCsvAsync(file[0].OpenReadStream());
-                _logger.LogInformation($"Get data from file {file[0].FileName} was received");
-                return Ok(employees);
+                _logger.LogInformation($"Try get data from file {file[0].FileName} was received");
+                await _transactionService.AddFromCsvAsync(file[0].OpenReadStream());
+                _logger.LogInformation($"Data data from file {file[0].FileName} successfully received and saved in the database.");
+                return Ok();
             }
             catch (ArgumentException ex)
             {

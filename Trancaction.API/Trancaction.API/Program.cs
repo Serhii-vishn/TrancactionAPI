@@ -1,3 +1,5 @@
+
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
@@ -13,6 +15,7 @@ builder.Services.AddLogging(c => c.AddFluentMigratorConsole())
             .WithGlobalConnectionString(connectionString)
             .ScanIn(Assembly.GetExecutingAssembly()).For.Migrations());
 
+builder.Services.AddTransient<ITransactionService, TransactionService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
