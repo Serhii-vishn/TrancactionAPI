@@ -1,16 +1,24 @@
-var configuration = GetConfiguration();
-
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+
+builder.Services.AddSingleton<DapperDbContext>();
+builder.Services.AddSingleton<Database>();
+
+builder.Services.AddHttpClient<GeoTimezoneApiClient>();
+
+var connectionString = builder.Configuration.GetConnectionString("SqlConnection");
+
+builder.Services.AddLogging(c => c.AddFluentMigratorConsole())
+        .AddFluentMigratorCore()
+        .ConfigureRunner(c => c.AddSqlServer2012()
+            .WithGlobalConnectionString(connectionString)
+            .ScanIn(Assembly.GetExecutingAssembly()).For.Migrations());
+
+builder.Services.AddTransient<ITransactionService, TransactionService>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-{
-    options.UseSqlServer(configuration["ConnectionString"]);
-    options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
-});
 
 var app = builder.Build();
 
@@ -24,35 +32,8 @@ app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
+app.MigrateDatabase();
+
 app.MapControllers();
 
-CreateDbIfNotExists(app);
-
 app.Run();
-
-IConfiguration GetConfiguration()
-{
-    var builder = new ConfigurationBuilder()
-        .SetBasePath(Directory.GetCurrentDirectory())
-        .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-        .AddEnvironmentVariables();
-
-    return builder.Build();
-}
-
-void CreateDbIfNotExists(IHost host)
-{
-    using (var scope = host.Services.CreateScope())
-    {
-        var services = scope.ServiceProvider;
-        try
-        {
-            var context = services.GetRequiredService<ApplicationDbContext>();
-        }
-        catch (Exception ex)
-        {
-            var logger = services.GetRequiredService<ILogger<Program>>();
-            logger.LogError(ex, "An error occurred while creating the DB.");
-        }
-    }
-}
