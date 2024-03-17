@@ -1,14 +1,16 @@
-﻿using Dapper;
+﻿using System.Text.RegularExpressions;
 
 namespace Transaction.API.Services
 {
     public class TransactionService : ITransactionService
     {
         private readonly DapperDbContext _context;
+        private readonly GeoTimezoneApiClient _geoTimezoneApiClient;
 
-        public TransactionService(DapperDbContext context) 
+        public TransactionService(DapperDbContext context, GeoTimezoneApiClient geoTimezoneApiClient)
         {
             _context = context;
+            _geoTimezoneApiClient = geoTimezoneApiClient;
         }
 
         public async Task AddFromCsvAsync(Stream fileParh)
@@ -49,13 +51,51 @@ namespace Transaction.API.Services
             }
         }
 
-        public async Task<IList<TransactionEntity>> GetAllAsync()
+        public async Task<IList<TransactionEntity>> ListAsync()
         {
             using var connection = _context.CreateConnection();
                 var sql = "SELECT * FROM TransactionEntity";
 
-                var books = await connection.QueryAsync<TransactionEntity>(sql);
-                return books.ToList();
+                var transactions = await connection.QueryAsync<TransactionEntity>(sql);
+                return transactions.ToList();
+        }
+
+        public async Task<IList<TransactionEntity>> ListAsync(int year)
+        {
+            ValidateYear(year);
+
+            using var connection = _context.CreateConnection();
+                var sql = @"SELECT * FROM TransactionEntity WHERE YEAR(Transaction_date) = @Year";
+                var filteredTransactions = await connection.QueryAsync<TransactionEntity>(sql, new { year});
+                return filteredTransactions.ToList();
+        }
+
+        public async Task<IList<TransactionEntity>> ListAsync(int year, int month)
+        {
+            ValidateYear(year);
+            ValidateMonth(month);
+
+            using var connection = _context.CreateConnection();
+                var sql = @"SELECT * FROM TransactionEntity WHERE YEAR(Transaction_date) = @Year AND MONTH(Transaction_date) = @Month";
+                var filteredTransactions = await connection.QueryAsync<TransactionEntity>(sql, new { Year = year, Month = month });
+                return filteredTransactions.ToList();
+        }
+
+        public async Task<IList<TransactionEntity>> ListAsync(int year, int month, string timezone)
+        {
+            ValidateYear(year);
+            ValidateMonth(month);
+            ValidateTimeZone(timezone);
+
+            throw new NotImplementedException();
+        }
+
+        public async Task<IList<TransactionEntity>> ListAsync(int year, string timezone)
+        {
+            ValidateYear(year);
+            ValidateTimeZone(timezone);
+
+            throw new NotImplementedException();
         }
 
         private async Task<bool> CheckTransactionExist(TransactionEntity record)
@@ -64,7 +104,7 @@ namespace Transaction.API.Services
                 var sql = @"SELECT TOP 1 * FROM TransactionEntity 
                     WHERE Transaction_id = @Transaction_id";
 
-                var transaction = await connection.QueryFirstOrDefaultAsync<TransactionEntity>(sql, record);
+                var transaction = await connection.QueryFirstOrDefaultAsync<TransactionEntity>(sql, new { record });
                 return transaction == null;
         }
 
@@ -91,5 +131,31 @@ namespace Transaction.API.Services
                 var rowsAffected = await connection.ExecuteAsync(sql, record);
         }
 
+        private async Task<string> GetIanaTimezoneForCoordinates(double latitude, double longitude)
+        {
+            var ianaTimezone = await _geoTimezoneApiClient.GetIanaTimezone(latitude, longitude);
+
+            return ianaTimezone;
+        }
+
+        private static void ValidateYear(int year)
+        {
+            if (year < 1990 || year > DateTime.Now.Year)
+                throw new ArgumentException($"The year must be in the range from 1990 to {DateTime.Now.Year}.");
+        }
+
+        private static void ValidateMonth(int month)
+        {
+            if (month <= 0 || month > 12)
+                throw new ArgumentException($"The month must be in the range from 1 to 12.");
+        }
+
+        private static void ValidateTimeZone(string timezone)
+        {
+            const string timeZonePattern = @"^UTC[-+]\d{1,2}(:\d{2})?$"; //fix regax
+
+            if (!Regex.IsMatch(timezone, timeZonePattern))
+                throw new ArgumentException("Incorrect time zone format");
+        }
     }
 }

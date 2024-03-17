@@ -1,11 +1,11 @@
-
-
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
 builder.Services.AddSingleton<DapperDbContext>();
 builder.Services.AddSingleton<Database>();
+
+builder.Services.AddHttpClient<GeoTimezoneApiClient>();
 
 var connectionString = builder.Configuration.GetConnectionString("SqlConnection");
 

@@ -12,16 +12,15 @@
             _logger = logger;
         }
 
-        [HttpPost]
-        [Route("/read-transactions-csv")]
-        public async Task<ActionResult> GetTransactionsCSV([FromForm] IFormFileCollection file)
+        [HttpGet]
+        [Route("/transactions")]
+        public async Task<ActionResult> GetTransactionsAsync()
         {
             try
             {
-                _logger.LogInformation($"Try get data from file {file[0].FileName} was received");
-                await _transactionService.AddFromCsvAsync(file[0].OpenReadStream());
-                _logger.LogInformation($"Data data from file {file[0].FileName} successfully received and saved in the database.");
-                return Ok();
+                var employees = await _transactionService.ListAsync();
+                _logger.LogInformation($"Get data from db was received");
+                return Ok(employees);
             }
             catch (ArgumentException ex)
             {
@@ -36,14 +35,103 @@
         }
 
         [HttpGet]
-        [Route("/transactions")]
-        public async Task<ActionResult> GetAll()
+        [Route("/transactions{year}")]
+        public async Task<IActionResult> GetTransactionsAsyns(int year)
         {
             try
             {
-                var employees = await _transactionService.GetAllAsync();
-                _logger.LogInformation($"Get data from db was received");
-                return Ok(employees);
+                var filteredTransactions = await _transactionService.ListAsync(year);
+                _logger.LogInformation($"Transactions (count = {filteredTransactions.Count}) were received");
+                return Ok(filteredTransactions);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex.Message, ex);
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.Message, ex);
+                return StatusCode(500);
+            }
+        }
+
+        [HttpGet]
+        [Route("/transactions{year}/timezone/{timezone}")]
+        public async Task<IActionResult> GetTransactionsAsyns(int year, string timezone)
+        {
+            try
+            {
+                var filteredTransactions = await _transactionService.ListAsync(year, timezone);
+                _logger.LogInformation($"Transactions (count = {filteredTransactions.Count}) were received");
+                return Ok(filteredTransactions);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex.Message, ex);
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.Message, ex);
+                return StatusCode(500);
+            }
+        }
+
+        [HttpGet]
+        [Route("/transactions{year}/mounth{mounth}")]
+        public async Task<IActionResult> GetTransactionsAsyns(int year, int mounth)
+        {
+            try
+            {
+                var filteredTransactions = await _transactionService.ListAsync(year, mounth);
+                _logger.LogInformation($"Transactions (count = {filteredTransactions.Count}) were received");
+                return Ok(filteredTransactions);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex.Message, ex);
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.Message, ex);
+                return StatusCode(500);
+            }
+        }
+
+        [HttpGet]
+        [Route("/transactions{year}/mounth{mounth}/timezone/{timezone}")]
+        public async Task<IActionResult> GetTransactionsAsyns(int year, int mounth, string timezone)
+        {
+            try
+            {
+                var filteredTransactions = await _transactionService.ListAsync(year, mounth, timezone);
+                _logger.LogInformation($"Transactions (count = {filteredTransactions.Count}) were received");
+                return Ok(filteredTransactions);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex.Message, ex);
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.Message, ex);
+                return StatusCode(500);
+            }
+        }
+
+        [HttpPost]
+        [Route("/transactions/import-csv")]
+        public async Task<ActionResult> AddTransactionsCsvAsync(IFormFile file)
+        {
+            try
+            {
+                _logger.LogInformation($"Try get data from file {file.FileName} was received");
+                await _transactionService.AddFromCsvAsync(file.OpenReadStream());
+                _logger.LogInformation($"Data data from file {file.FileName} successfully received and saved in the database.");
+                return Ok("Successfully received and saved in the database.");
             }
             catch (ArgumentException ex)
             {
