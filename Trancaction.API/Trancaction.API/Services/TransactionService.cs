@@ -11,42 +11,12 @@
             _geoTimezoneApiClient = geoTimezoneApiClient;
         }
 
-        public async Task AddFromCsvAsync(Stream fileParh)
+        public async Task<TransactionEntity?> GetAsync(string transaction_id)
         {
-            using var reader = new StreamReader(fileParh);
-            using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
-            {
-                HasHeaderRecord = true,
-                IgnoreBlankLines = true,
-                TrimOptions = TrimOptions.Trim,
-            });
-            await csv.ReadAsync();
-            csv.ReadHeader();
+            using var connection = _context.CreateConnection();
+                var sql = @"SELECT TOP 1 * FROM TransactionEntity WHERE Transaction_id = @Transaction_id";
 
-            while (await csv.ReadAsync())
-            {
-                try
-                {
-                    var record = new TransactionEntity
-                    {
-                        Transaction_id = csv.GetField("transaction_id"),
-                        Name = csv.GetField("name"),
-                        Email = csv.GetField("email"),
-                        Amount = decimal.Parse(csv.GetField("amount").TrimStart('$'), CultureInfo.InvariantCulture),
-                        Transaction_date = await Task.Run(() => DateTime.ParseExact(csv.GetField("transaction_date"), "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)),
-                        Client_location = csv.GetField("client_location")
-                    };
-
-                    if (await CheckTransactionExist(record))
-                        await AddTransactionAsync(record);
-                    else
-                        await UpdateTransactionAsync(record);
-                }
-                catch (Exception ex)
-                {
-                    continue;
-                }
-            }
+                return await connection.QueryFirstOrDefaultAsync<TransactionEntity>(sql, new { transaction_id });
         }
 
         public async Task<IList<TransactionEntity>> ListAsync()
@@ -64,6 +34,7 @@
 
             using var connection = _context.CreateConnection();
                 var sql = @"SELECT * FROM TransactionEntity WHERE YEAR(Transaction_date) = @Year";
+
                 var filteredTransactions = await connection.QueryAsync<TransactionEntity>(sql, new { year});
                 return filteredTransactions.ToList();
         }
@@ -75,6 +46,7 @@
 
             using var connection = _context.CreateConnection();
                 var sql = @"SELECT * FROM TransactionEntity WHERE YEAR(Transaction_date) = @Year AND MONTH(Transaction_date) = @Month";
+
                 var filteredTransactions = await connection.QueryAsync<TransactionEntity>(sql, new { Year = year, Month = month });
                 return filteredTransactions.ToList();
         }
@@ -118,14 +90,49 @@
             return filteredTransactions;
         }
 
-        private async Task<bool> CheckTransactionExist(TransactionEntity record)
+        public async Task AddFromCsvAsync(Stream fileParh)
         {
-            using var connection = _context.CreateConnection();
-                var sql = @"SELECT TOP 1 * FROM TransactionEntity 
-                    WHERE Transaction_id = @Transaction_id";
+            using var reader = new StreamReader(fileParh);
+            using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
+            {
+                HasHeaderRecord = true,
+                IgnoreBlankLines = true,
+                TrimOptions = TrimOptions.Trim,
+            });
+            await csv.ReadAsync();
+            csv.ReadHeader();
 
-                var transaction = await connection.QueryFirstOrDefaultAsync<TransactionEntity>(sql, new { record });
-                return transaction == null;
+            while (await csv.ReadAsync())
+            {
+                var record = new TransactionEntity
+                {
+                    Transaction_id = csv.GetField("transaction_id"),
+                    Name = csv.GetField("name"),
+                    Email = csv.GetField("email"),
+                    Amount = decimal.Parse(csv.GetField("amount").TrimStart('$'), CultureInfo.InvariantCulture),
+                    Transaction_date = await Task.Run(() => DateTime.ParseExact(csv.GetField("transaction_date"), "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)),
+                    Client_location = csv.GetField("client_location")
+                };
+
+                if (await GetAsync(record.Transaction_id) is null)
+                    await AddTransactionAsync(record);
+                else
+                    await UpdateTransactionAsync(record);
+            }
+        }
+
+        public async Task<IActionResult> ExportCsvAsync(string transaction_id)
+        {
+            var transaction = await GetAsync(transaction_id);
+            if (transaction is null)
+                throw new ArgumentNullException("Transaction not found");
+
+            var builder = new StringBuilder();
+            builder.AppendLine("Transaction_id, Name, Transaction_date, Amount");
+            builder.AppendLine($"{transaction.Transaction_id}, {transaction.Name}, {transaction.Transaction_date}, {transaction.Amount}");
+
+            var csvData = Encoding.UTF8.GetBytes(builder.ToString());
+            return new FileContentResult(csvData, "text/csv") { FileDownloadName = $"{transaction_id}.csv" };
         }
 
         private async Task AddTransactionAsync(TransactionEntity record)

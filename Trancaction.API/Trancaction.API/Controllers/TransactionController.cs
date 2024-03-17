@@ -1,4 +1,6 @@
-﻿namespace Transaction.API.Controllers
+﻿using System;
+
+namespace Transaction.API.Controllers
 {
     [ApiController]
     public class TransactionController : Controller
@@ -110,6 +112,32 @@
                 await _transactionService.AddFromCsvAsync(file.OpenReadStream());
                 _logger.LogInformation($"Data data from file {file.FileName} successfully received and saved in the database.");
                 return Ok("Successfully received and saved in the database.");
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex.Message, ex);
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.Message, ex);
+                return StatusCode(500);
+            }
+        }
+
+        [HttpPost("/transactions{transaction_id}/export-csv")]
+        public async Task<IActionResult> ExportTransactions(string transaction_id)
+        {
+            try
+            {
+                var result = await _transactionService.ExportCsvAsync(transaction_id);
+                _logger.LogInformation($"Export {transaction_id} to csv file");
+                return result;
+            }
+            catch (ArgumentNullException ex)
+            {
+                _logger.LogError(ex.Message, ex);
+                return NotFound(ex.Message);
             }
             catch (ArgumentException ex)
             {
