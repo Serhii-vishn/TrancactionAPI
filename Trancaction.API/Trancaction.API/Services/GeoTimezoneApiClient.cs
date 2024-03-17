@@ -1,7 +1,4 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-
-namespace Transaction.API.Services
+﻿namespace Transaction.API.Services
 {
     public class GeoTimezoneApiClient
     {
@@ -13,7 +10,7 @@ namespace Transaction.API.Services
             _httpClient.BaseAddress = new Uri("https://api.geotimezone.com/public/timezone");
         }
 
-        public async Task<string> GetIanaTimezone(double latitude, double longitude)
+        public async Task<string> GetTimezone(double latitude, double longitude)
         {
             var apiUrl = $"?latitude={latitude}&longitude={longitude}";
             var response = await _httpClient.GetAsync(apiUrl);
@@ -23,10 +20,10 @@ namespace Transaction.API.Services
 
             var content = await response.Content.ReadAsStringAsync();
 
-            return GetTimeZone(content);
+            return GetTimeZoneJson(content);
         }
 
-        private string GetTimeZone(string location) 
+        private string GetTimeZoneJson(string location) 
         {
 
             var responseObject = JsonConvert.DeserializeObject<JObject>(location);

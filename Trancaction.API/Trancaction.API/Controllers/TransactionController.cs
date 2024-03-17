@@ -13,28 +13,6 @@
         }
 
         [HttpGet]
-        [Route("/transactions")]
-        public async Task<ActionResult> GetTransactionsAsync()
-        {
-            try
-            {
-                var employees = await _transactionService.ListAsync();
-                _logger.LogInformation($"Get data from db was received");
-                return Ok(employees);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogError(ex.Message, ex);
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex.Message, ex);
-                return StatusCode(500);
-            }
-        }
-
-        [HttpGet]
         [Route("/transactions{year}")]
         public async Task<IActionResult> GetTransactionsAsyns(int year)
         {

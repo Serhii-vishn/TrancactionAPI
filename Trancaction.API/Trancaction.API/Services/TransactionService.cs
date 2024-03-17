@@ -1,6 +1,4 @@
-﻿using System.Text.RegularExpressions;
-
-namespace Transaction.API.Services
+﻿namespace Transaction.API.Services
 {
     public class TransactionService : ITransactionService
     {
@@ -87,7 +85,18 @@ namespace Transaction.API.Services
             ValidateMonth(month);
             ValidateTimeZone(timezone);
 
-            throw new NotImplementedException();
+            var transactionsList = await ListAsync(year, month);
+            var filteredTransactions = new List<TransactionEntity>();
+
+            foreach (var transaction in transactionsList)
+            {
+                string transactionTimezone = await GetTimezoneForCoordinates(transaction.Client_location);
+
+                if (string.Equals(timezone.ToUpper(), transactionTimezone.ToUpper()))
+                    filteredTransactions.Add(transaction);
+            }
+
+            return filteredTransactions;
         }
 
         public async Task<IList<TransactionEntity>> ListAsync(int year, string timezone)
@@ -95,7 +104,18 @@ namespace Transaction.API.Services
             ValidateYear(year);
             ValidateTimeZone(timezone);
 
-            throw new NotImplementedException();
+            var transactionsList = await ListAsync(year);
+            var filteredTransactions = new List<TransactionEntity>();
+
+            foreach (var transaction in transactionsList)
+            {
+                string transactionTimezone = await GetTimezoneForCoordinates(transaction.Client_location);
+
+                if (string.Equals(timezone.ToUpper(), transactionTimezone.ToUpper()))
+                    filteredTransactions.Add(transaction);
+            }
+
+            return filteredTransactions;
         }
 
         private async Task<bool> CheckTransactionExist(TransactionEntity record)
@@ -131,11 +151,14 @@ namespace Transaction.API.Services
                 var rowsAffected = await connection.ExecuteAsync(sql, record);
         }
 
-        private async Task<string> GetIanaTimezoneForCoordinates(double latitude, double longitude)
+        private async Task<string> GetTimezoneForCoordinates(string location)
         {
-            var ianaTimezone = await _geoTimezoneApiClient.GetIanaTimezone(latitude, longitude);
+            var coordinates = location.Trim().Split(',');
 
-            return ianaTimezone;
+            double latitude = double.Parse(coordinates[0]);
+            double longitude = double.Parse(coordinates[1]);
+
+            return await _geoTimezoneApiClient.GetTimezone(latitude, longitude);
         }
 
         private static void ValidateYear(int year)
@@ -152,9 +175,9 @@ namespace Transaction.API.Services
 
         private static void ValidateTimeZone(string timezone)
         {
-            const string timeZonePattern = @"^UTC[-+]\d{1,2}(:\d{2})?$"; //fix regax
+            const string timeZonePattern = @"^(UTC[-+](?:1[0-4]|[0]?[0-9])(?::(?:0[0-9]|[1-5][0-9]))?)$";
 
-            if (!Regex.IsMatch(timezone, timeZonePattern))
+            if (!Regex.IsMatch(timezone.ToUpper(), timeZonePattern))
                 throw new ArgumentException("Incorrect time zone format");
         }
     }
